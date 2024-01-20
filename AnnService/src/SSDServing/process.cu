@@ -51,10 +51,11 @@ void solve(void *h_target, void *h_data, std::vector<uint64_t> h_offset, std::ve
     cudaMalloc((void **)&d_offset, sizeof(uint64_t) * count);
     cudaMalloc((void **)&d_st, sizeof(int) * count);
     cudaMalloc((void **)&d_distance, sizeof(float) * count);
-    cudaMemcpy(d_target, h_target, sizetype * length, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_data, h_data, sizeof(char) * bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_offset, h_offset.data(), sizeof(uint64_t) * count, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_st, h_st.data(), sizeof(int) * count, cudaMemcpyHostToDevice);
+    cudaStream_t stream;
+    cudaMemcpyAsync(d_target, h_target, sizetype * length, cudaMemcpyHostToDevice, stream);
+    cudaMemcpyAsync(d_data, h_data, sizeof(char) * bytes, cudaMemcpyHostToDevice, stream);
+    cudaMemcpyAsync(d_offset, h_offset.data(), sizeof(uint64_t) * count, cudaMemcpyHostToDevice, stream);
+    cudaMemcpyAsync(d_st, h_st.data(), sizeof(int) * count, cudaMemcpyHostToDevice, stream);
     int block = 32;
     int grid = (count + block - 1) / block;
     if (type == typeid(int8_t))
@@ -65,10 +66,7 @@ void solve(void *h_target, void *h_data, std::vector<uint64_t> h_offset, std::ve
         Process<<<grid, block>>>(reinterpret_cast<uint16_t *>(d_data), reinterpret_cast<uint16_t *>(d_target), d_distance, d_offset, d_st, length, count);
     else
         Process<<<grid, block>>>(reinterpret_cast<float *>(d_data), reinterpret_cast<float *>(d_target), d_distance, d_offset, d_st, length, count);
-    cudaMemcpy(h_distance.data(), d_distance, sizeof(float) * count, cudaMemcpyDeviceToHost);
-    cudaFree(d_data);
-    cudaFree(d_target);
-    cudaFree(d_offset);
-    cudaFree(d_st);
-    cudaFree(d_distance);
+    cudaMemcpyAsync(h_distance.data(), d_distance, sizeof(float) * count, cudaMemcpyDeviceToHost, stream);
+    cudaStreamSynchronize(stream);
+    cudaStreamDestroy(stream);
 }
