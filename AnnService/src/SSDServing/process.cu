@@ -48,14 +48,14 @@ void solve(void *h_target, void *h_data, std::vector<uint64_t> h_offset, std::ve
     float *d_distance;
     cudaMalloc((void **)&d_target, sizetype * length);
     cudaMalloc((void **)&d_data, sizeof(char) * bytes);
-    cudaMalloc((void **)d_offset, sizeof(uint64_t) * count);
+    cudaMalloc((void **)&d_offset, sizeof(uint64_t) * count);
     cudaMalloc((void **)&d_st, sizeof(int) * count);
-    cudaMalloc((void **)d_distance, sizeof(float) * count);
+    cudaMalloc((void **)&d_distance, sizeof(float) * count);
     cudaMemcpy(d_target, h_target, sizetype * length, cudaMemcpyHostToDevice);
     cudaMemcpy(d_data, h_data, sizeof(char) * bytes, cudaMemcpyHostToDevice);
     cudaMemcpy(d_offset, h_offset.data(), sizeof(uint64_t) * count, cudaMemcpyHostToDevice);
     cudaMemcpy(d_st, h_st.data(), sizeof(int) * count, cudaMemcpyHostToDevice);
-    int block = 128;
+    int block = 32;
     int grid = (count + block - 1) / block;
     if (type == typeid(int8_t))
         Process<<<grid, block>>>(reinterpret_cast<int8_t *>(d_data), reinterpret_cast<int8_t *>(d_target), d_distance, d_offset, d_st, length, count);
