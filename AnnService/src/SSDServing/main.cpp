@@ -14,24 +14,27 @@
 #include "inc/SSDServing/main.h"
 #include "inc/SSDServing/Utils.h"
 #include "inc/SSDServing/SSDIndex.h"
- 
+
 using namespace SPTAG;
 
-namespace SPTAG {
-	namespace SSDServing {
+namespace SPTAG
+{
+	namespace SSDServing
+	{
 
-		int BootProgram(bool forANNIndexTestTool, 
-			std::map<std::string, std::map<std::string, std::string>>* config_map, 
-			const char* configurationPath, 
-			VectorValueType valueType,
-			DistCalcMethod distCalcMethod,
-			const char* dataFilePath, 
-			const char* indexFilePath) {
-
+		int BootProgram(bool forANNIndexTestTool,
+						std::map<std::string, std::map<std::string, std::string>> *config_map,
+						const char *configurationPath,
+						VectorValueType valueType,
+						DistCalcMethod distCalcMethod,
+						const char *dataFilePath,
+						const char *indexFilePath)
+		{
 
 			bool searchSSD = false;
 			std::string QuantizerFilePath = "";
-			if (forANNIndexTestTool) {
+			if (forANNIndexTestTool)
+			{
 				(*config_map)[SEC_BASE]["ValueType"] = Helper::Convert::ConvertToString(valueType);
 				(*config_map)[SEC_BASE]["DistCalcMethod"] = Helper::Convert::ConvertToString(distCalcMethod);
 				(*config_map)[SEC_BASE]["VectorPath"] = dataFilePath;
@@ -54,11 +57,13 @@ namespace SPTAG {
 				(*config_map)[SEC_BUILD_SSD_INDEX]["BuildSsdIndex"] = "true";
 
 				std::map<std::string, std::string>::iterator iter;
-				if ((iter = (*config_map)[SEC_BASE].find("QuantizerFilePath")) != (*config_map)[SEC_BASE].end()) {
+				if ((iter = (*config_map)[SEC_BASE].find("QuantizerFilePath")) != (*config_map)[SEC_BASE].end())
+				{
 					QuantizerFilePath = iter->second;
 				}
 			}
-			else {
+			else
+			{
 				Helper::IniReader iniReader;
 				iniReader.LoadIniFile(configurationPath);
 				(*config_map)[SEC_BASE] = iniReader.GetParameters(SEC_BASE);
@@ -72,16 +77,20 @@ namespace SPTAG {
 				searchSSD = iniReader.GetParameter(SEC_SEARCH_SSD_INDEX, "isExecute", false);
 				QuantizerFilePath = iniReader.GetParameter(SEC_BASE, "QuantizerFilePath", std::string(""));
 
-				for (auto& KV : iniReader.GetParameters(SEC_SEARCH_SSD_INDEX)) {
+				for (auto &KV : iniReader.GetParameters(SEC_SEARCH_SSD_INDEX))
+				{
 					std::string param = KV.first, value = KV.second;
-					if (buildSSD && Helper::StrUtils::StrEqualIgnoreCase(param.c_str(), "BuildSsdIndex")) continue;
-					if (buildSSD && Helper::StrUtils::StrEqualIgnoreCase(param.c_str(), "isExecute")) continue;
-					if (Helper::StrUtils::StrEqualIgnoreCase(param.c_str(), "PostingPageLimit")) param = "SearchPostingPageLimit";
-					if (Helper::StrUtils::StrEqualIgnoreCase(param.c_str(), "InternalResultNum")) param = "SearchInternalResultNum";
+					if (buildSSD && Helper::StrUtils::StrEqualIgnoreCase(param.c_str(), "BuildSsdIndex"))
+						continue;
+					if (buildSSD && Helper::StrUtils::StrEqualIgnoreCase(param.c_str(), "isExecute"))
+						continue;
+					if (Helper::StrUtils::StrEqualIgnoreCase(param.c_str(), "PostingPageLimit"))
+						param = "SearchPostingPageLimit";
+					if (Helper::StrUtils::StrEqualIgnoreCase(param.c_str(), "InternalResultNum"))
+						param = "SearchInternalResultNum";
 					(*config_map)[SEC_BUILD_SSD_INDEX][param] = value;
 				}
 			}
-
 
 			SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Set QuantizerFile = %s\n", QuantizerFilePath.c_str());
 
@@ -90,34 +99,39 @@ namespace SPTAG {
 			{
 				exit(1);
 			}
-			if (index == nullptr) {
+			if (index == nullptr)
+			{
 				SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "Cannot create Index with ValueType %s!\n", (*config_map)[SEC_BASE]["ValueType"].c_str());
 				return -1;
 			}
 
-			for (auto& sectionKV : *config_map) {
-				for (auto& KV : sectionKV.second) {
+			for (auto &sectionKV : *config_map)
+			{
+				for (auto &KV : sectionKV.second)
+				{
 					index->SetParameter(KV.first, KV.second, sectionKV.first);
 				}
 			}
 
-			if (index->BuildIndex() != ErrorCode::Success) {
+			if (index->BuildIndex() != ErrorCode::Success)
+			{
 				SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "Failed to build index.\n");
 				exit(1);
 			}
 
-			SPANN::Options* opts = nullptr;
+			SPANN::Options *opts = nullptr;
 
-
-#define DefineVectorValueType(Name, Type) \
-	if (index->GetVectorValueType() == VectorValueType::Name) { \
-		opts = ((SPANN::Index<Type>*)index.get())->GetOptions(); \
-	} \
+#define DefineVectorValueType(Name, Type)                         \
+	if (index->GetVectorValueType() == VectorValueType::Name)     \
+	{                                                             \
+		opts = ((SPANN::Index<Type> *)index.get())->GetOptions(); \
+	}
 
 #include "inc/Core/DefinitionList.h"
 #undef DefineVectorValueType
 
-			if (opts == nullptr) {
+			if (opts == nullptr)
+			{
 				SPTAGLIB_LOG(Helper::LogLevel::LL_Error, "Cannot get options.\n");
 				exit(1);
 			}
@@ -147,15 +161,17 @@ namespace SPTAG {
 				}
 				auto vectorSet = vectorReader->GetVectorSet();
 				auto querySet = queryReader->GetVectorSet();
-				if (distCalcMethod == DistCalcMethod::Cosine && !index->m_pQuantizer) vectorSet->Normalize(opts->m_iSSDNumberOfThreads);
+				if (distCalcMethod == DistCalcMethod::Cosine && !index->m_pQuantizer)
+					vectorSet->Normalize(opts->m_iSSDNumberOfThreads);
 
 				omp_set_num_threads(opts->m_iSSDNumberOfThreads);
 
-#define DefineVectorValueType(Name, Type) \
-	if (opts->m_valueType == VectorValueType::Name) { \
-		COMMON::TruthSet::GenerateTruth<Type>(querySet, vectorSet, opts->m_truthPath, \
-			distCalcMethod, opts->m_resultNum, opts->m_truthType, index->m_pQuantizer); \
-	} \
+#define DefineVectorValueType(Name, Type)                                                                                 \
+	if (opts->m_valueType == VectorValueType::Name)                                                                       \
+	{                                                                                                                     \
+		COMMON::TruthSet::GenerateTruth<Type>(querySet, vectorSet, opts->m_truthPath,                                     \
+											  distCalcMethod, opts->m_resultNum, opts->m_truthType, index->m_pQuantizer); \
+	}
 
 #include "inc/Core/DefinitionList.h"
 #undef DefineVectorValueType
@@ -163,11 +179,13 @@ namespace SPTAG {
 				SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "End generating truth.\n");
 			}
 
-			if (searchSSD) {
-#define DefineVectorValueType(Name, Type) \
-	if (opts->m_valueType == VectorValueType::Name) { \
-        SSDIndex::Search((SPANN::Index<Type>*)(index.get())); \
-	} \
+			if (searchSSD)
+			{
+#define DefineVectorValueType(Name, Type)                      \
+	if (opts->m_valueType == VectorValueType::Name)            \
+	{                                                          \
+		SSDIndex::Search((SPANN::Index<Type> *)(index.get())); \
+	}
 
 #include "inc/Core/DefinitionList.h"
 #undef DefineVectorValueType
@@ -177,14 +195,15 @@ namespace SPTAG {
 	}
 }
 
-// switch between exe and static library by _$(OutputType) 
+// switch between exe and static library by _$(OutputType)
 #ifdef _exe
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
 	if (argc < 2)
 	{
 		SPTAGLIB_LOG(Helper::LogLevel::LL_Error,
-			"ssdserving configFilePath\n");
+					 "ssdserving configFilePath\n");
 		exit(-1);
 	}
 

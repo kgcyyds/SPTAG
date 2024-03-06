@@ -29,7 +29,12 @@ namespace SPTAG
                   m_diskAccessCount(0),
                   m_totalSearchLatency(0),
                   m_totalLatency(0),
+                  m_gpuComputeLatency(0),
                   m_exLatency(0),
+                  m_sortResultLatency(0),
+                  m_batchReadFileAsyncLatency(0),
+                  m_gpuCopyLatency(0),
+                  m_gpuMallocLatency(0),
                   m_asyncLatency0(0),
                   m_asyncLatency1(0),
                   m_asyncLatency2(0),
@@ -52,7 +57,17 @@ namespace SPTAG
 
             double m_totalLatency;
 
+            double m_gpuComputeLatency;//距离计算卸载至GPU所消耗的时间
+
             double m_exLatency;
+
+            double m_sortResultLatency;//排序时间
+
+            double m_batchReadFileAsyncLatency;//异步读时间
+
+            double m_gpuCopyLatency;//送数据至GPU的时间
+
+            double m_gpuMallocLatency;//GPU申请空间时间
 
             double m_asyncLatency0;
 

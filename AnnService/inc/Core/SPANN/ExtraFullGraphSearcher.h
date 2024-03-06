@@ -15,7 +15,7 @@
 #include <climits>
 #include <future>
 #include <numeric>
-
+#include <chrono>
 extern void solve(void *target, void *data, std::vector<float> &h_distance, int count, int length, const std::type_info &type);
 
 namespace SPTAG
@@ -234,8 +234,20 @@ namespace SPTAG
                 std::vector<ValueType> vec;
                 std::vector<int> id;
                 char *target;
+
+                auto mallocstartTime = std::chrono::high_resolution_clock::now();
                 cudaMalloc((void **)&target, sizeof(ValueType) * vectorDim);
+                auto mallocendTime = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double, std::milli> mallocelapsed = mallocendTime - mallocstartTime;
+                double mallocelapsedMilliseconds = mallocelapsed.count();
+                p_stats->m_gpuMallocLatency += mallocelapsedMilliseconds;
+
+                auto copystartTime = std::chrono::high_resolution_clock::now();
                 cudaMemcpy(target, queryResults.GetQuantizedTarget(), sizeof(ValueType) * vectorDim, cudaMemcpyHostToDevice);
+                auto copyendTime = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double, std::milli> copyelapsed = copyendTime - copystartTime;
+                double copyelapsedMilliseconds = copyelapsed.count();
+                p_stats->m_gpuCopyLatency += copyelapsedMilliseconds;
 
 #if defined(ASYNC_READ) && !defined(BATCH_READ)
                 int unprocessed = 0;
@@ -315,7 +327,12 @@ namespace SPTAG
 
 #ifdef ASYNC_READ
 #ifdef BATCH_READ
+                auto readstartTime = std::chrono::high_resolution_clock::now();
                 BatchReadFileAsync(m_indexFiles, (p_exWorkSpace->m_diskRequests).data(), postingListCount);
+                auto readendTime = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double, std::milli> readelapsed = readendTime - readstartTime;
+                double readelapsedMilliseconds = readelapsed.count();
+                p_stats->m_batchReadFileAsyncLatency = readelapsedMilliseconds;
 #else
                 while (unprocessed > 0)
                 {
@@ -338,10 +355,29 @@ namespace SPTAG
 #endif
 #endif
                 char *data;
+                mallocstartTime = std::chrono::high_resolution_clock::now();
                 cudaMalloc((void **)&data, sizeof(ValueType) * vec.size());
+                mallocendTime = std::chrono::high_resolution_clock::now();
+                mallocelapsed = mallocendTime - mallocstartTime;
+                mallocelapsedMilliseconds = mallocelapsed.count();
+                p_stats->m_gpuMallocLatency += mallocelapsedMilliseconds;
+
+                copystartTime = std::chrono::high_resolution_clock::now();
                 cudaMemcpy(data, vec.data(), sizeof(ValueType) * vec.size(), cudaMemcpyHostToDevice);
+                copyendTime = std::chrono::high_resolution_clock::now();
+                copyelapsed = copyendTime - copystartTime;
+                copyelapsedMilliseconds = copyelapsed.count();
+                p_stats->m_gpuCopyLatency += copyelapsedMilliseconds;
+
                 std::vector<float> h_distance(id.size());
+
+                auto gpustartTime = std::chrono::high_resolution_clock::now();
                 solve(target, data, h_distance, id.size(), vectorDim, typeid(ValueType));
+                auto gpuendTime = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double, std::milli> elapsed = gpuendTime - gpustartTime;
+                double elapsedMilliseconds = elapsed.count();
+                p_stats->m_gpuComputeLatency += elapsedMilliseconds;
+
                 for (int i = 0; i < id.size(); i++)
                     queryResults.AddPoint(id[i], h_distance[i]);
 

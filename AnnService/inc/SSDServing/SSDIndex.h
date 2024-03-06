@@ -317,6 +317,46 @@ namespace SPTAG {
                         return ss.m_totalSearchLatency;
                     },
                     "%.3lf");
+                
+                SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "\nAsync Read Latency Distribution:\n");
+                PrintPercentiles<double, SPANN::SearchStats>(stats,
+                    [](const SPANN::SearchStats& ss) -> double
+                    {
+                        return ss.m_batchReadFileAsyncLatency;
+                    },
+                    "%.3lf");
+                
+                SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "\nGPU Malloc Latency Distribution:\n");
+                PrintPercentiles<double, SPANN::SearchStats>(stats,
+                    [](const SPANN::SearchStats& ss) -> double
+                    {
+                        return ss.m_gpuMallocLatency;
+                    },
+                    "%.3lf");
+
+                SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "\nGPU Copy Latency Distribution:\n");
+                PrintPercentiles<double, SPANN::SearchStats>(stats,
+                    [](const SPANN::SearchStats& ss) -> double
+                    {
+                        return ss.m_gpuCopyLatency;
+                    },
+                    "%.3lf");
+
+                SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "\nGPU Compute Latency Distribution:\n");
+                PrintPercentiles<double, SPANN::SearchStats>(stats,
+                    [](const SPANN::SearchStats& ss) -> double
+                    {
+                        return ss.m_gpuComputeLatency;
+                    },
+                    "%.3lf");
+
+                SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "\nSort Latency Distribution:\n");
+                PrintPercentiles<double, SPANN::SearchStats>(stats,
+                    [](const SPANN::SearchStats& ss) -> double
+                    {
+                        return ss.m_sortResultLatency;
+                    },
+                    "%.3lf");
 
                 SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "\nTotal Disk Page Access Distribution:\n");
                 PrintPercentiles<int, SPANN::SearchStats>(stats,

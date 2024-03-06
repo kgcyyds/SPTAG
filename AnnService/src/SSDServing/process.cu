@@ -56,4 +56,7 @@ void solve(void *target, void *data, std::vector<float> &h_distance, int count, 
         Process<<<grid, block>>>(reinterpret_cast<float *>(data), reinterpret_cast<float *>(target), d_distance, length, count);
     cudaDeviceSynchronize();
     cudaMemcpy(h_distance.data(), d_distance, sizeof(float) * count, cudaMemcpyDeviceToHost);
+    cudaFree(data);
+    cudaFree(target);
+    cudaFree(d_distance);
 }

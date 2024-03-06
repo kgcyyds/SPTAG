@@ -338,7 +338,14 @@ namespace SPTAG
             p_queryResults->Reverse();
             m_extraSearcher->SearchIndex(m_options.m_dim, workSpace.get(), *p_queryResults, m_index, p_stats);
             m_workSpaceFactory->ReturnWorkSpace(std::move(workSpace));
+
+            auto sortstartTime = std::chrono::high_resolution_clock::now();
             p_queryResults->SortResult();
+            auto sortendTime = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> elapsed = sortendTime - sortstartTime;
+            double elapsedMilliseconds = elapsed.count();
+            p_stats->m_sortResultLatency = elapsedMilliseconds;
+            
             return ErrorCode::Success;
         }
 
@@ -762,6 +769,10 @@ namespace SPTAG
             SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "select head time: %.2lfs\n", selectHeadTime);
 
             SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "Begin Build Head...\n");
+
+            bool flat1 = false;
+            if(m_pQuantizer) flat1 = true;
+            SPTAGLIB_LOG(Helper::LogLevel::LL_Info, "m_pQuantizer is %d\n", flat1);
             if (m_options.m_buildHead)
             {
                 auto valueType = m_pQuantizer ? SPTAG::VectorValueType::UInt8 : m_options.m_valueType;
